@@ -1,4 +1,4 @@
-import React, { memo, type ReactNode, useRef } from 'react';
+import React, { memo, type ReactNode } from 'react';
 import type { Column } from './index';
 
 export type TableRowProps<T> = {
@@ -15,11 +15,8 @@ export const TableRow = memo(function TableRow<T extends Record<string, any>>({
     children,
     onEdit,
   }: TableRowProps<T>) {
-    const d = useRef(null);
-    console.log('REDNER ROW', d.current);
-
     return (
-      <tr className="hover:bg-gray-400 transition-colors" ref={d}>
+      <tr className="hover:bg-gray-400 transition-colors">
         {columns.map((col) => (
           <React.Fragment key={String(col.key)}>{children(col)}</React.Fragment>
         ))}

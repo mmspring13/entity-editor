@@ -12,6 +12,16 @@ const BaseLayout = () => {
       href: '/price-plans',
       current: location.pathname === '/price-plans',
     },
+    {
+      name: 'Pages',
+      href: '/pages',
+      current: location.pathname === '/pages',
+    },
+    {
+      name: 'Products',
+      href: '/products',
+      current: location.pathname === '/products',
+    },
   ];
 
   const toggleMobileMenu = () => {

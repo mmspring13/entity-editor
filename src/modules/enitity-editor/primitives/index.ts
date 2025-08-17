@@ -12,7 +12,8 @@ export interface BaseField {
     | 'json'
     | 'select'
     | 'multiselect'
-    | 'date';
+    | 'date'
+    | 'entity';
   label?: string;
   readonly?: boolean;
   // eslint-disable-next-line
@@ -23,7 +24,7 @@ export interface TextField extends BaseField {
   kind: 'text';
   label?: string;
   filterable?: boolean;
-  type?: 'input' | 'textarea' | 'date';
+  type?: 'input' | 'textarea';
 }
 
 export interface NumberField extends BaseField {
@@ -41,6 +42,12 @@ export interface BoolField extends BaseField {
   label?: string;
   filterable?: boolean;
   type?: 'switch' | 'checkbox';
+}
+
+export interface DateField extends BaseField {
+  kind: 'date';
+  label?: string;
+  filterable?: boolean;
 }
 
 export interface SelectField<T extends string | number> extends BaseField {
@@ -90,12 +97,20 @@ export interface JsonField extends BaseField {
   label?: string;
 }
 
+export interface EntityField extends BaseField {
+  kind: 'entity';
+  filterable?: boolean;
+  schema: Record<string, Field>;
+}
+
 export type Field =
   | TextField
   | NumberField
   | BoolField
   | FileField
   | JsonField
+  | EntityField
+  | DateField
   | SelectField<string | number>
   | MultiSelectField<string | number>;
 
@@ -114,6 +129,11 @@ export const number = (
 
 export const bool = (config: Omit<BoolField, 'kind'> = {}): BoolField => ({
   kind: 'bool',
+  ...config,
+});
+
+export const date = (config: Omit<DateField, 'kind'> = {}): DateField => ({
+  kind: 'date',
   ...config,
 });
 
@@ -143,20 +163,9 @@ export type EntitySchema = Record<string, Field>;
 
 export const entity = <T extends EntitySchema>(schema: T) => schema;
 
-export const getTableSchema = <T extends EntitySchema>(schema: T) => {
-  return Object.keys(schema).reduce<
-    {
-      key: string;
-      label?: string;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      getValueToString?: (item: any) => string;
-    }[]
-  >((acc, value) => {
-    acc.push({
-      key: value,
-      label: schema[value].label,
-      getValueToString: schema[value].getValueToString,
-    });
-    return acc;
-  }, []);
-};
+export const entityField = (
+  config: Omit<EntityField, 'kind'>,
+): EntityField => ({
+  kind: 'entity',
+  ...config,
+});

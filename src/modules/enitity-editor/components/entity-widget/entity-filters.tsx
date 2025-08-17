@@ -20,12 +20,39 @@ export const EntityFilters = ({ schema, onFilter }: EntityFiltersProps) => {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const activeFilters: FilterFormValues = {};
-    Object.entries(filterValues).forEach(([key, value]) => {
-      if (value !== undefined && value !== '' && value !== false) {
-        activeFilters[key] = value;
-      }
-    });
+    const activeFilters: Record<string, { value: any; fieldType: string }> = {};
+
+    const processFilters = (filters: FilterFormValues, prefix = '') => {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '' && value !== false) {
+          const fullKey = prefix ? `${prefix}.${key}` : key;
+
+          // Get the field type from the current schema
+          let fieldType = 'text'; // default
+          try {
+            const keys = fullKey.split('.');
+            let currentSchema = schema;
+
+            for (let i = 0; i < keys.length - 1; i++) {
+              const k = keys[i];
+              if (currentSchema[k] && currentSchema[k].kind === 'entity') {
+                currentSchema = currentSchema[k].schema;
+              }
+            }
+            const lastKey = keys[keys.length - 1];
+            if (currentSchema[lastKey]) {
+              fieldType = currentSchema[lastKey].kind;
+            }
+          } catch {
+            // If schema lookup fails, use default
+          }
+
+          activeFilters[fullKey] = { value, fieldType };
+        }
+      });
+    };
+
+    processFilters(filterValues);
     onFilter(activeFilters);
   };
 
@@ -41,25 +68,36 @@ export const EntityFilters = ({ schema, onFilter }: EntityFiltersProps) => {
       'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
 
     switch (field.kind) {
-      case 'text':
-        if (field.type === 'date') {
-          return (
-            <div key={key} className="flex flex-col space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                {field.label || key}
-              </label>
+      case 'date':
+        return (
+          <div key={key} className="flex flex-col space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label || key}
+            </label>
+            <div className="flex items-center space-x-1">
               <input
                 type="datetime-local"
-                value={filterValues[key] || ''}
+                value={filterValues[key]?.[0] || ''}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handleChange(key, e.target.value)
+                  handleChange(key, [e.target.value, filterValues[key]?.[1]])
                 }
-                placeholder={field.label || key}
+                placeholder="From"
+                className={inputClasses}
+              />
+              <input
+                type="datetime-local"
+                value={filterValues[key]?.[1] || ''}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange(key, [filterValues[key]?.[0], e.target.value])
+                }
+                placeholder="To"
                 className={inputClasses}
               />
             </div>
-          );
-        }
+          </div>
+        );
+
+      case 'text':
         return (
           <div key={key} className="flex flex-col space-y-2">
             <label className="text-sm font-medium text-gray-700">
@@ -160,6 +198,27 @@ export const EntityFilters = ({ schema, onFilter }: EntityFiltersProps) => {
           </div>
         );
 
+      case 'entity':
+        return (
+          <div key={key} className="flex flex-col space-y-2 w-full">
+            <span className="text-sm font-medium text-gray-700">
+              {field.label || key}
+            </span>
+            <div className="pl-4">
+              {Object.entries(field.schema)
+                .filter(
+                  ([_, schemaField]) =>
+                    'filterable' in schemaField && schemaField.filterable,
+                )
+                .map(([nestedKey, schemaField]) => (
+                  <div key={nestedKey} className="mb-3">
+                    {renderFilterField(`${key}.${nestedKey}`, schemaField)}
+                  </div>
+                ))}
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -187,7 +246,7 @@ export const EntityFilters = ({ schema, onFilter }: EntityFiltersProps) => {
         </button>
       </div>
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        <div className="flex flex-wrap gap-4 mb-4">
           {filterableFields.map(([key, field]) =>
             renderFilterField(key, field),
           )}

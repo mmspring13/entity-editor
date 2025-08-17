@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { bool, entity, text } from '@/modules/enitity-editor/primitives';
+import { bool, date, entity, text } from '@/modules/enitity-editor/primitives';
 import {
   EntityWidget,
   type EntityWidgetSchemaFn,
 } from '@/modules/enitity-editor/components/entity-widget';
+import { toDateTimeLocal } from '@/helpers/to-date-timeLocal.ts';
 
 const columns = [
   { key: 'id', label: 'ID' },
@@ -94,7 +95,7 @@ const pricePlans: PricePlan[] = [
   },
 ];
 
-const HomePage = () => {
+const PricePlansPage = () => {
   const [data, setData] = useState<PricePlan[]>(pricePlans);
 
   const pricePlanSchema = useCallback<EntityWidgetSchemaFn>((row) => {
@@ -107,19 +108,17 @@ const HomePage = () => {
         readonly: disabled,
         filterable: true,
       }),
-      active: bool({ label: 'Active', readonly: disabled, filterable: true }),
-      createdAt: text({
+      createdAt: date({
         label: 'Created At',
-        type: 'date',
         readonly: disabled,
         filterable: true,
       }),
-      removedAt: text({
+      removedAt: date({
         label: 'Removed At',
-        type: 'date',
         readonly: disabled,
         filterable: true,
       }),
+      active: bool({ label: 'Active', readonly: disabled, filterable: true }),
     });
   }, []);
 
@@ -140,7 +139,7 @@ const HomePage = () => {
       schema={pricePlanSchema}
       renderCell={(key, row) => {
         if (key === 'createdAt' || key === 'removedAt') {
-          return new Date(row[key]).toISOString();
+          return toDateTimeLocal(row[key]);
         }
         if (key === 'active') {
           return row[key] ? 'Yes' : 'No';
@@ -151,4 +150,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default PricePlansPage;

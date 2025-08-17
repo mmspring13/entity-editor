@@ -2,8 +2,9 @@ import { createBrowserRouter } from 'react-router';
 import { lazy, Suspense } from 'react';
 import BaseLayout from '@/pages/base';
 
-const Home = lazy(() => import('@/pages/home'));
 const PricePlans = lazy(() => import('@/pages/price-plans'));
+const Pages = lazy(() => import('@/pages/pages'));
+const Products = lazy(() => import('@/pages/products'));
 
 export const router = createBrowserRouter([
   {
@@ -15,12 +16,16 @@ export const router = createBrowserRouter([
     ),
     children: [
       {
-        index: true,
-        element: <Home />,
-      },
-      {
         path: '/price-plans',
         element: <PricePlans />,
+      },
+      {
+        path: '/pages',
+        element: <Pages />,
+      },
+      {
+        path: '/products',
+        element: <Products />,
       },
     ],
   },
