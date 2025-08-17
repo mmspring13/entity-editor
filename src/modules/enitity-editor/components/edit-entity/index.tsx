@@ -25,7 +25,7 @@ const fileValidator = (f: FileField, value: File) => {
   return null;
 };
 
-export const EntityEdit = ({
+const EntityEdit = ({
   schema,
   onSubmit,
   onOpenChange,
@@ -68,11 +68,11 @@ export const EntityEdit = ({
           if (typeof value === 'string') {
             JSON.parse(value);
           } else {
-            throw new Error();
+            return null;
           }
           return null;
         } catch {
-          return 'Invalid JSON';
+          return null;
         }
       }
       default:
@@ -343,3 +343,5 @@ export const EntityEdit = ({
     </Dialog>
   );
 };
+
+export default EntityEdit;
