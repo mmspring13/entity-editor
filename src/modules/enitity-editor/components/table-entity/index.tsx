@@ -10,6 +10,7 @@ export type TableProps<T> = {
   keyProp: keyof T;
   columns: Array<Column>;
   children: (row: T) => ReactNode;
+  renderHeader?: (column: Column) => ReactNode;
 };
 
 export const Table = <T,>({
@@ -17,6 +18,7 @@ export const Table = <T,>({
   columns,
   children,
   keyProp,
+  renderHeader,
 }: TableProps<T>) => {
   const header = useMemo(
     () => (
@@ -24,14 +26,14 @@ export const Table = <T,>({
         <tr>
           {columns.map((col) => (
             <th key={String(col.key)} className="px-4 py-2 text-left border-b">
-              {col.label}
+              {renderHeader ? renderHeader(col) : col.label}
             </th>
           ))}
           <th className="px-4 py-2 text-left border-b">Edit</th>
         </tr>
       </thead>
     ),
-    [columns],
+    [columns, renderHeader],
   );
 
   return (

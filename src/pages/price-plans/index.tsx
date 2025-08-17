@@ -8,8 +8,8 @@ import {
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'description', label: 'Description' },
-  { key: 'active', label: 'Active' },
-  { key: 'createdAt', label: 'Created At' },
+  { key: 'active', label: 'Active', sortable: true },
+  { key: 'createdAt', label: 'Created At', sortable: true },
   { key: 'removedAt', label: 'Removed At' },
 ];
 
