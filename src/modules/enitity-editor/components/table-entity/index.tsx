@@ -3,6 +3,7 @@ import React, { useMemo, type ReactNode } from 'react';
 export type Column = {
   key: string;
   label: string;
+  sortable?: boolean;
 };
 
 export type TableProps<T> = {

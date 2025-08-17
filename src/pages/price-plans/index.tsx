@@ -5,7 +5,10 @@ import {
   select,
   text,
 } from '@/modules/enitity-editor/primitives';
-import { EntityWidget } from '@/modules/enitity-editor/components/entity-widget';
+import {
+  EntityWidget,
+  type EntityWidgetSchemaFn,
+} from '@/modules/enitity-editor/components/entity-widget';
 
 const columns = [
   { key: 'id', label: 'ID' },
@@ -16,7 +19,7 @@ const columns = [
 ];
 
 type PricePlan = {
-  id: string;
+  id: number;
   description: string;
   createdAt: string;
   active: boolean;
@@ -99,7 +102,7 @@ const pricePlans: PricePlan[] = [
 const HomePage = () => {
   const [data, setData] = useState<PricePlan[]>(pricePlans);
 
-  const pricePlanSchema = useCallback((row: PricePlan) => {
+  const pricePlanSchema = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
       id: text({ label: 'ID', readonly: disabled }),

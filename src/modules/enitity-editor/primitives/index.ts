@@ -22,12 +22,14 @@ export interface BaseField {
 export interface TextField extends BaseField {
   kind: 'text';
   label?: string;
+  filterable?: boolean;
   type?: 'input' | 'textarea' | 'date';
 }
 
 export interface NumberField extends BaseField {
   kind: 'number';
   label?: string;
+  filterable?: boolean;
   type?: 'input' | 'slider';
   min?: number;
   max?: number;
@@ -37,12 +39,14 @@ export interface NumberField extends BaseField {
 export interface BoolField extends BaseField {
   kind: 'bool';
   label?: string;
+  filterable?: boolean;
   type?: 'switch' | 'checkbox';
 }
 
 export interface SelectField<T extends string | number> extends BaseField {
   kind: 'select';
   options: Option<T>[];
+  filterable?: boolean;
   label?: string;
   type: 'select' | 'radio';
 }
@@ -51,6 +55,7 @@ export interface MultiSelectField<T extends string | number> extends BaseField {
   kind: 'multiselect';
   options: Option<T>[];
   label?: string;
+  filterable?: boolean;
 }
 
 interface FileFieldBase extends BaseField {

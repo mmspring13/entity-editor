@@ -13,11 +13,12 @@ import { type ReactNode, useCallback, useState } from 'react';
 // eslint-disable-next-line
 type RowValues = Record<string, any>;
 
+export type EntityWidgetSchemaFn = (
+  values: RowValues,
+) => EntityEditProps['schema'];
+
 export type EntityWidgetProps<T extends Column> = {
-  schema: (values: RowValues) => EntityEditProps['schema'];
-  // schema:
-  //   | EntityEditProps['schema']
-  //   | ((values: RowValues) => EntityEditProps['schema']);
+  schema: EntityEditProps['schema'] | EntityWidgetSchemaFn;
   tableColumns: Array<T>;
   keyProp: string;
   tableData: Array<RowValues>;
@@ -48,8 +49,6 @@ export const EntityWidget = <T extends Column>({
     },
     [onSaveEntity],
   );
-
-  const getSchema = useCallback((entity: RowValues) => {}, []);
 
   return (
     <>
