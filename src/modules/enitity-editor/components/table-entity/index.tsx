@@ -3,7 +3,6 @@ import React, { useMemo, type ReactNode } from 'react';
 export type Column = {
   key: string;
   label: string;
-  sortable?: boolean;
 };
 
 export type TableProps<T> = {
@@ -48,21 +47,3 @@ export const Table = <T,>({
     </table>
   );
 };
-
-// // --------------------
-// // ✅ Example Usage:
-// // --------------------
-// type DataItem = {
-//   id: number;
-//   description: string;
-//   active: boolean;
-//   createdAt: string;
-//   removedAt: string;
-// };
-//
-// const columns: Array<{ key: keyof DataItem; label: string }> = [
-//   { key: 'id', label: 'ID' },
-//   { key: 'description', label: 'Description' },
-//   { key: 'createdAt', label: 'Created At' },
-//   { key: 'removedAt', label: 'Removed At' },
-// ];

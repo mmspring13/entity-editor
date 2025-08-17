@@ -1,10 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import {
-  bool,
-  entity,
-  select,
-  text,
-} from '@/modules/enitity-editor/primitives';
+import { useCallback, useState } from 'react';
+import { bool, entity, text } from '@/modules/enitity-editor/primitives';
 import {
   EntityWidget,
   type EntityWidgetSchemaFn,
@@ -105,32 +100,25 @@ const HomePage = () => {
   const pricePlanSchema = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
-      id: text({ label: 'ID', readonly: disabled }),
+      id: text({ label: 'ID', readonly: disabled, filterable: true }),
       description: text({
         label: 'Description',
         type: 'textarea',
         readonly: disabled,
+        filterable: true,
       }),
-      active: bool({ label: 'Active', readonly: disabled }),
-      option: select({
-        label: 'Option',
-        type: 'select',
-        readonly: disabled,
-        options: [
-          { label: '1', value: '1' },
-          { label: '2', value: '2' },
-          { label: '3', value: '3' },
-        ],
-      }),
+      active: bool({ label: 'Active', readonly: disabled, filterable: true }),
       createdAt: text({
         label: 'Created At',
         type: 'date',
         readonly: disabled,
+        filterable: true,
       }),
       removedAt: text({
         label: 'Removed At',
         type: 'date',
         readonly: disabled,
+        filterable: true,
       }),
     });
   }, []);
