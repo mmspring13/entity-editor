@@ -2,14 +2,15 @@ import { type ChangeEvent, type FormEvent, useMemo, useState } from 'react';
 import type { Field, FileField } from '@/modules/enitity-editor/primitives';
 import { Switch } from '@/components/switch';
 import { Dialog } from '@/components/diaglog';
+import { toDateTimeLocal } from '@/helpers/to-date-timeLocal.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EntityFormValues = Record<string, any>;
 
-export type EntityEditProps<T extends EntityFormValues> = {
+export type EntityEditProps = {
   schema: Record<string, Field>;
-  initialValues?: T;
-  onSubmit: (data: T) => void;
+  initialValues?: EntityFormValues;
+  onSubmit: (data: EntityFormValues) => void;
   open: boolean;
   onOpenChange: () => void;
 };
@@ -22,14 +23,16 @@ const fileValidator = (f: FileField, value: File) => {
   return null;
 };
 
-export const EntityEdit = <T extends EntityFormValues>({
+export const EntityEdit = ({
   schema,
   onSubmit,
   onOpenChange,
   open,
   initialValues,
-}: EntityEditProps<T>) => {
-  const [formData, setFormData] = useState<T>((initialValues || {}) as T);
+}: EntityEditProps) => {
+  const [formData, setFormData] = useState<EntityFormValues>(
+    (initialValues || {}) as EntityFormValues,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const fields = useMemo(() => Object.entries(schema), [schema]);
@@ -42,7 +45,7 @@ export const EntityEdit = <T extends EntityFormValues>({
     switch (field.kind) {
       case 'file': {
         const f = field as FileField;
-        if (!value && !field.required) return null;
+        if (!value) return null;
         if (!(value instanceof FileList)) return 'Invalid file';
 
         if (field.multiple) {
@@ -86,7 +89,6 @@ export const EntityEdit = <T extends EntityFormValues>({
       return;
     }
 
-    // Parse JSON fields before submit
     const parsedData: EntityFormValues = { ...formData };
     Object.entries(schema).forEach(([key, field]) => {
       if (field.kind === 'json' && parsedData[key]) {
@@ -94,7 +96,7 @@ export const EntityEdit = <T extends EntityFormValues>({
       }
     });
 
-    onSubmit(parsedData as T);
+    onSubmit(parsedData);
   }
 
   const renderField = (
@@ -102,71 +104,96 @@ export const EntityEdit = <T extends EntityFormValues>({
     field: Field,
     error: string | undefined,
   ) => {
+    const inputClasses =
+      'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
+    const textareaClasses =
+      'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed min-h-[100px] resize-y';
+    const rangeClasses =
+      'w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider';
+    const selectClasses =
+      'w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
+
     switch (field.kind) {
       case 'text':
         if (field.type === 'date') {
           return (
+            <label key={key}>
+              {field.label && <span className="pb-2.5">{field.label}</span>}
+              <input
+                type="datetime-local"
+                readOnly={field.readonly}
+                // value={formData[key] ? formData[key].split('T')?.[0] : ''}
+                value={formData[key] ? toDateTimeLocal(formData[key]) : ''}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange(key, e.target.value)
+                }
+                placeholder={field.label}
+                className={inputClasses}
+              />
+            </label>
+          );
+        }
+        if (field.type === 'textarea') {
+          return (
+            <label key={key}>
+              {field.label && <span className="pb-2.5">{field.label}</span>}
+              <textarea
+                readOnly={field.readonly}
+                value={formData[key] || ''}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  handleChange(key, e.target.value)
+                }
+                placeholder={field.label}
+                className={textareaClasses}
+              />
+            </label>
+          );
+        }
+        return (
+          <label key={key}>
+            {field.label && <span className="pb-2.5">{field.label}</span>}
             <input
-              type="date"
-              key={key}
+              type="text"
+              readOnly={field.readonly}
               value={formData[key] || ''}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 handleChange(key, e.target.value)
               }
               placeholder={field.label}
-              className="w-full"
+              className={inputClasses}
             />
-          );
-        }
-        if (field.type === 'textarea') {
-          return (
-            <textarea
-              key={key}
-              value={formData[key] || ''}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                handleChange(key, e.target.value)
-              }
-              placeholder={field.label}
-              className="w-full"
-            />
-          );
-        }
-        return (
-          <input
-            type="text"
-            key={key}
-            value={formData[key] || ''}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange(key, e.target.value)
-            }
-            placeholder={field.label}
-            className="w-full"
-          />
+          </label>
         );
 
       case 'number':
         return field.type === 'slider' ? (
-          <input
-            type="range"
-            key={key}
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            value={[formData[key] ?? 0]}
-            onChange={(e) => handleChange(key, e.target.value)}
-            className="w-full"
-          />
+          <label key={key}>
+            {field.label && <span className="pb-2.5">{field.label}</span>}
+            <input
+              type="range"
+              readOnly={field.readonly}
+              min={field.min}
+              max={field.max}
+              step={field.step}
+              value={[formData[key] ?? 0]}
+              onChange={(e) => handleChange(key, e.target.value)}
+              className={rangeClasses}
+            />
+          </label>
         ) : (
-          <input
-            type="number"
-            key={key}
-            value={formData[key] || ''}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange(key, Number(e.target.value))
-            }
-            placeholder={field.label}
-            className="w-full"
-          />
+          <label key={key}>
+            {field.label && <span className="pb-2.5">{field.label}</span>}
+            <input
+              type="number"
+              readOnly={field.readonly}
+              value={formData[key] || ''}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                handleChange(key, Number(e.target.value))
+              }
+              placeholder={field.label}
+              className="w-full"
+            />
+          </label>
         );
 
       case 'bool':
@@ -175,18 +202,20 @@ export const EntityEdit = <T extends EntityFormValues>({
             <Switch
               checked={!!formData[key]}
               onCheckedChange={(v: boolean) => handleChange(key, v)}
+              disabled={field.readonly}
             />
             <label>{field.label}</label>
           </div>
         ) : (
-          <div key={key} className="flex items-center space-x-2">
+          <label key={key}>
             <input
               type="checkbox"
+              disabled={field.readonly}
               checked={!!formData[key]}
               onChange={(e) => handleChange(key, e.target.checked)}
             />
-            <label>{field.label}</label>
-          </div>
+            {field.label && <span className="pl-1.5">{field.label}</span>}
+          </label>
         );
 
       case 'select':
@@ -194,7 +223,8 @@ export const EntityEdit = <T extends EntityFormValues>({
           <div key={key} className="flex flex-col">
             <label className="mb-1">{field.label}</label>
             <select
-              className="border rounded p-2"
+              className={selectClasses}
+              disabled={field.readonly}
               value={formData[key] ?? ''}
               onChange={(e) => handleChange(key, e.target.value)}
             >
@@ -214,7 +244,8 @@ export const EntityEdit = <T extends EntityFormValues>({
             <label className="mb-1">{field.label}</label>
             <select
               multiple
-              className="border rounded p-2"
+              className={selectClasses}
+              disabled={field.readonly}
               value={formData[key] ?? []}
               onChange={(e) =>
                 handleChange(
@@ -238,6 +269,7 @@ export const EntityEdit = <T extends EntityFormValues>({
             <label>{field.label}</label>
             <input
               type="file"
+              disabled={field.readonly}
               multiple={field.multiple}
               accept={field.acceptFiles?.join(',')}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -253,6 +285,7 @@ export const EntityEdit = <T extends EntityFormValues>({
             <label>{field.label || key}</label>
             <textarea
               onChange={(e) => handleChange(key, e.target.value)}
+              readOnly={field.readonly}
               placeholder='{"foo": "bar"}'
             />
             {error && <p style={{ color: 'red' }}>{error}</p>}
@@ -266,13 +299,18 @@ export const EntityEdit = <T extends EntityFormValues>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {fields.map(([key, field]) => (
-          <div key={key} className="space-y-1">
-            {renderField(key, field, errors[key])}
-          </div>
+          <div key={key}>{renderField(key, field, errors[key])}</div>
         ))}
-        <button type="submit">Save</button>
+        <div className="flex justify-end pt-4 border-t border-gray-200">
+          <button
+            type="submit"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Save
+          </button>
+        </div>
       </form>
     </Dialog>
   );

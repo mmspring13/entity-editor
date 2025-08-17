@@ -1,78 +1,67 @@
-import React, { memo, useCallback, useMemo } from 'react';
-import { TableEntityRow } from './TableEntityRow.js';
+import React, { useMemo, type ReactNode } from 'react';
 
-export interface TableColumn {
+export type Column = {
   key: string;
-  label?: string;
-  getValueToString?: (item: any) => string;
-}
+  label: string;
+};
 
-export interface TableEntityProps<T> {
+export type TableProps<T> = {
   data: T[];
-  columns: TableColumn[];
-  // onEdit?: (id: string | number) => void;
-  children?: (item: T) => React.ReactNode;
-}
+  keyProp: keyof T;
+  columns: Array<Column>;
+  children: (row: T) => ReactNode;
+};
 
-export const TableEntity = memo(
-  <T extends Record<string, any>>({
-    data,
-    columns,
-    // onEdit,
-    children,
-  }: TableEntityProps<T>) => {
-    // const handleEdit = useCallback(
-    //   (id: string | number) => {
-    //     onEdit?.(id);
-    //   },
-    //   [onEdit],
-    // );
+export const Table = <T,>({
+  data,
+  columns,
+  children,
+  keyProp,
+}: TableProps<T>) => {
+  const header = useMemo(
+    () => (
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th key={String(col.key)} className="px-4 py-2 text-left border-b">
+              {col.label}
+            </th>
+          ))}
+          <th className="px-4 py-2 text-left border-b">Edit</th>
+        </tr>
+      </thead>
+    ),
+    [columns],
+  );
 
-    const memoizedData = useMemo(() => data, [data]);
+  return (
+    <table className="min-w-full border-collapse border rounded-lg">
+      {header}
+      <tbody>
+        {data.map((row) => (
+          <React.Fragment key={row[keyProp] as string | number}>
+            {children(row)}
+          </React.Fragment>
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
-    // Generate dynamic grid template columns based on schema
-    const responsiveGridCols = useMemo(() => {
-      const baseCols = columns.map(() => '1fr').join(' ');
-      return {
-        default: `grid-cols-[${baseCols}_100px]`,
-        md: `md:grid-cols-[${baseCols}_100px]`,
-        sm: `sm:grid-cols-[${baseCols}_80px]`,
-      };
-    }, [columns]);
-
-    return (
-      <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div
-            className={`grid ${responsiveGridCols.default} ${responsiveGridCols.md} ${responsiveGridCols.sm} gap-4 md:gap-4 sm:gap-2 px-4 md:px-4 sm:px-2 py-4 md:py-4 sm:py-3 font-semibold text-gray-600 text-sm md:text-sm sm:text-xs`}
-          >
-            {columns.map((column) => (
-              <div key={column.key} className="py-2">
-                {column.label || column.key}
-              </div>
-            ))}
-            <div className="py-2">Actions</div>
-          </div>
-        </div>
-        <div className="max-h-[600px] overflow-y-auto">
-          {memoizedData.map(
-            (item) =>
-              // <TableEntityRow
-              //   key={item.id}
-              //   item={item}
-              //   columns={columns}
-              //   onEdit={handleEdit}
-              // >
-              children?.(item),
-            // </TableEntityRow>
-          )}
-        </div>
-      </div>
-    );
-  },
-);
-
-TableEntity.displayName = 'TableEntity';
-
-export { TableEntityRow };
-export { TableEntityDemo } from './TableEntityDemo.js';
+// // --------------------
+// // ✅ Example Usage:
+// // --------------------
+// type DataItem = {
+//   id: number;
+//   description: string;
+//   active: boolean;
+//   createdAt: string;
+//   removedAt: string;
+// };
+//
+// const columns: Array<{ key: keyof DataItem; label: string }> = [
+//   { key: 'id', label: 'ID' },
+//   { key: 'description', label: 'Description' },
+//   { key: 'createdAt', label: 'Created At' },
+//   { key: 'removedAt', label: 'Removed At' },
+// ];

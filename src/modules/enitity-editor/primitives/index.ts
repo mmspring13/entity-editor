@@ -14,9 +14,8 @@ export interface BaseField {
     | 'multiselect'
     | 'date';
   label?: string;
-  required?: boolean;
-  editable?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly?: boolean;
+  // eslint-disable-next-line
   getValueToString?(item: any): string;
 }
 

@@ -1,118 +1,8 @@
-import React, {
-  memo,
-  useMemo,
-  type ReactNode,
-  useState,
-  useRef,
-  useCallback,
-} from 'react';
+import { useState, useCallback } from 'react';
+import { Table } from '@/modules/enitity-editor/components/table-entity';
+import { TableRow } from '@/modules/enitity-editor/components/table-entity/table-entity-row';
+import { TableCell } from '@/modules/enitity-editor/components/table-entity/table-entity-cell';
 
-// Column definition type
-interface Column {
-  key: string;
-  label: string;
-}
-
-// Props for Table
-interface TableProps<T> {
-  data: T[];
-  keyProp?: string;
-  columns: Column[];
-  children: (row: T) => ReactNode;
-}
-
-export const Table = memo(
-  // eslint-disable-next-line
-  <T extends Record<string, any>>({
-    data,
-    columns,
-    children,
-    keyProp = 'id',
-  }: TableProps<T>) => {
-    const header = useMemo(
-      () => (
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={String(col.key)}
-                className="px-4 py-2 text-left border-b"
-              >
-                {col.label}
-              </th>
-            ))}
-            <th className="px-4 py-2 text-left border-b">Edit</th>
-          </tr>
-        </thead>
-      ),
-      [columns],
-    );
-
-    return (
-      <table className="min-w-full border-collapse border rounded-lg">
-        {header}
-        <tbody>
-          {data.map((row) => (
-            <React.Fragment key={row[keyProp]}>{children(row)}</React.Fragment>
-          ))}
-        </tbody>
-      </table>
-    );
-  },
-);
-
-// Row props
-interface TableRowProps<T> {
-  row: T;
-  columns: Column[];
-  children: (col: Column) => ReactNode;
-  onEdit?: (row: T) => void;
-}
-
-export const TableRow = memo(
-  // eslint-disable-next-line
-  <T extends Record<string, any>>({
-    row,
-    columns,
-    children,
-    onEdit,
-  }: TableRowProps<T>) => {
-    const d = useRef(null);
-    console.log('REDNER ROW', d.current);
-
-    return (
-      <tr className="hover:bg-blue-950 transition-colors" ref={d}>
-        {columns.map((col) => (
-          <React.Fragment key={String(col.key)}>{children(col)}</React.Fragment>
-        ))}
-        <td className="px-4 py-2 text-left border-b">
-          <button type="button" onClick={() => onEdit?.(row)}>
-            Edit
-          </button>
-        </td>
-      </tr>
-    );
-  },
-  (p, o) => {
-    console.log(p, o, o.columns === p.columns, o.onEdit === p.onEdit, p.children === o.children);
-    return false;
-  },
-);
-
-// Cell props
-interface TableCellProps {
-  children: ReactNode;
-}
-
-export const TableCell = memo(({ children }: TableCellProps) => {
-  // if (children[0] === 99000859) window.qe = children;
-  console.log('REDNER CELLL', typeof children, children);
-  return <td className="px-4 py-2 border-b">{children}</td>;
-});
-
-// --------------------
-// ✅ Example Usage:
-// --------------------
 type DataItem = {
   id: number;
   description: string;
@@ -155,7 +45,7 @@ export const Sb = ({ renderCell }) => {
   }, []);
 
   return (
-    <Table data={data} columns={columns}>
+    <Table data={data} columns={columns} keyProp="id">
       {(row) => (
         <TableRow key={row.id} row={row} columns={columns} onEdit={edit}>
           {(col) => (
