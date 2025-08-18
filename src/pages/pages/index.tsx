@@ -69,6 +69,9 @@ const PagesPage = () => {
       if (filters.active) {
         queryFilters.active = filters.active;
       }
+      if (filters.id) {
+        queryFilters.id = Number(filters.id);
+      }
       if (filters.title) {
         queryFilters.title = filters.title;
       }
