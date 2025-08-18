@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import {
   bool,
   date,
@@ -10,9 +10,15 @@ import {
 } from '@/modules/enitity-editor/primitives';
 import {
   EntityWidget,
+  type EntityWidgetDataProvider,
   type EntityWidgetSchemaFn,
 } from '@/modules/enitity-editor/components/entity-widget';
 import { toDateTimeLocal } from '@/helpers/to-date-timeLocal.ts';
+import {
+  productsFakeApi,
+  type FilterParams,
+  type SortParams,
+} from '@/modules/fake-api/products.ts';
 
 const columns = [
   { key: 'id', label: 'ID' },
@@ -22,128 +28,13 @@ const columns = [
   { key: 'options', label: 'Options' },
 ];
 
-type Product = {
-  id: number;
-  name: string;
-  createdAt: string;
-  active: boolean;
-  options: {
-    size: string;
-    amount: number;
-  };
-};
-
-const products: Product[] = [
-  {
-    id: 14381328,
-    name: 'id quis voluptate nostrud',
-    options: {
-      size: 'XL',
-      amount: 100,
-    },
-    active: true,
-    createdAt: '1985-08-09T02:10:18.0Z',
-  },
-  {
-    id: 26785188,
-    name: 'esse elit',
-    options: {
-      size: 'S',
-      amount: 10,
-    },
-    active: true,
-    createdAt: '1956-03-20T08:59:40.0Z',
-  },
-  {
-    id: 63878634,
-    name: 'enim',
-    options: {
-      size: 'L',
-      amount: 20,
-    },
-    active: false,
-    createdAt: '2016-07-27T16:05:57.0Z',
-  },
-  {
-    id: 79901249,
-    name: 'eu ad',
-    options: {
-      size: 'XXL',
-      amount: 1000,
-    },
-    active: true,
-    createdAt: '1988-08-20T03:53:24.0Z',
-  },
-  {
-    id: 53113051,
-    name: 'proident ipsum',
-    options: {
-      size: 'XL',
-      amount: 4,
-    },
-    active: true,
-    createdAt: '2003-01-19T20:09:29.0Z',
-  },
-  {
-    id: 49132779,
-    name: 'aliqua adipisicing',
-    options: {
-      size: 'S',
-      amount: 22,
-    },
-    active: false,
-    createdAt: '2003-06-14T02:44:44.0Z',
-  },
-  {
-    id: 12135250,
-    name: 'dolor non in sunt',
-    options: {
-      size: 'M',
-      amount: 11,
-    },
-    active: true,
-    createdAt: '2000-08-04T19:49:04.0Z',
-  },
-  {
-    id: 47196404,
-    name: 'dolor culpa in cupidatat',
-    options: {
-      size: 'S',
-      amount: 1,
-    },
-    active: false,
-    createdAt: '2003-11-15T23:56:45.0Z',
-  },
-  {
-    id: 5112903,
-    name: 'sunt amet do eu ipsum',
-    options: {
-      size: 'L',
-      amount: 10,
-    },
-    active: false,
-    createdAt: '1968-09-24T22:07:21.0Z',
-  },
-  {
-    id: 32497729,
-    name: 'eiusmod',
-    options: {
-      size: 'XXL',
-      amount: 0,
-    },
-    active: true,
-    createdAt: '2012-09-24T01:42:32.0Z',
-  },
-];
 const ProductsPage = () => {
-  const [data, setData] = useState<Product[]>(products);
-
   const productsScheme = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
       id: text({ label: 'ID', readonly: disabled, filterable: true }),
       name: text({
-        label: 'title',
+        label: 'name',
         readonly: disabled,
         filterable: true,
       }),
@@ -181,24 +72,63 @@ const ProductsPage = () => {
     });
   }, []);
 
-  const save = useCallback((values: Product) => {
-    setData((prevData) => {
-      const idx = prevData.findIndex((row) => row.id === values.id);
-      prevData[idx] = values;
-      return prevData;
-    });
-  }, []);
+  const dataProvider = useCallback<EntityWidgetDataProvider>(
+    (filters, sort) => {
+      const queryFilters: FilterParams = {};
+      let querySort: SortParams | null = null;
+      if (sort) {
+        querySort = {
+          field: sort.key,
+          direction: sort.direction,
+        };
+      }
+      if (filters.createdAt) {
+        queryFilters.createdAt = {
+          from: filters.createdAt[0],
+          to: filters.createdAt[1],
+        };
+      }
+      if (filters.active) {
+        queryFilters.active = filters.active;
+      }
+      if (filters.id) {
+        queryFilters.id = Number(filters.id);
+      }
+      if (filters.name) {
+        queryFilters.name = filters.name;
+      }
+      if (filters.options) {
+        queryFilters.options = {};
+        if (filters.options.size) {
+          queryFilters.options.size = filters.options.size;
+        }
+        if (filters.options.amount) {
+          queryFilters.options.amount = filters.options.amount;
+        }
+      }
+      return productsFakeApi.query({
+        filters: queryFilters,
+        sort: querySort || undefined,
+      });
+    },
+    [],
+  );
 
   return (
     <EntityWidget
-      tableData={data}
+      dataProvider={dataProvider}
       tableColumns={columns}
       keyProp="id"
-      onSaveEntity={save}
+      onSaveEntity={(v) => productsFakeApi.edit(v.id, v)}
       schema={productsScheme}
       renderCell={(key, row) => {
         if (key === 'options') {
-          return JSON.stringify(row[key]);
+          return (
+            <div className="flex flex-col">
+              <span>size: {row[key].size}</span>
+              <span className="pt-1">amount: {row[key].amount}</span>
+            </div>
+          );
         }
         if (key === 'createdAt') {
           return toDateTimeLocal(row[key]);

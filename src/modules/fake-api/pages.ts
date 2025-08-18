@@ -1,25 +1,22 @@
 import { compareAsc, isAfter, isBefore, parseISO } from 'date-fns';
 
-type Product = {
+type Page = {
   id: number;
-  name: string;
-  createdAt: string;
+  title: string;
+  updatedAt: string;
   active: boolean;
-  options: {
-    size: string;
-    amount: number;
-  };
+  publishedAt: string;
 };
 
 export type FilterParams = {
   id?: number;
-  name?: string;
+  title?: string;
   active?: boolean;
-  options?: {
-    size?: string;
-    amount?: number;
+  updatedAt?: {
+    from?: string;
+    to?: string;
   };
-  createdAt?: {
+  publishedAt?: {
     from?: string;
     to?: string;
   };
@@ -30,26 +27,27 @@ export type SortParams = {
   direction: 'asc' | 'desc';
 };
 
-class FakeApi {
-  private data: Product[];
+class FakePagesApi {
+  private data: Page[];
 
-  constructor(initialData: Product[]) {
+  constructor(initialData: Page[]) {
     this.data = [...initialData];
   }
 
-  async edit(id: number, newValues: Partial<Product>): Promise<Product | null> {
+  async edit(id: number, newValues: Partial<Page>): Promise<Page | null> {
     const index = this.data.findIndex((item) => item.id === id);
 
     if (index === -1) {
       return null; // Item not found
     }
 
-    // Create a new object with updated values while preserving the original createdAt
+    // Create a new object with updated values while preserving the original dates
     const updatedItem = {
       ...this.data[index],
       ...newValues,
-      // Preserve original createdAt unless explicitly provided
-      createdAt: newValues.createdAt ?? this.data[index].createdAt,
+      // Preserve original dates unless explicitly provided
+      updatedAt: newValues.updatedAt ?? this.data[index].updatedAt,
+      publishedAt: newValues.publishedAt ?? this.data[index].publishedAt,
     };
 
     // Directly update the item in the array
@@ -63,7 +61,7 @@ class FakeApi {
     filters?: FilterParams;
     sort?: SortParams;
     limit?: number;
-  }): Promise<Product[]> {
+  }): Promise<Page[]> {
     let result = [...this.data];
 
     // Apply filters if provided
@@ -80,21 +78,22 @@ class FakeApi {
     if (params.limit) {
       result = result.slice(0, params.limit);
     }
-    console.log('dsa', result, params.filters, params.sort);
+
     return result;
   }
 
   // Filter implementation
-  private applyFilters(items: Product[], filters: FilterParams): Product[] {
+  private applyFilters(items: Page[], filters: FilterParams): Page[] {
     return items.filter((item) => {
-      // Filter by name (case insensitive includes)
+      // Filter by id
       if (filters.id) {
         return item.id === filters.id;
       }
 
+      // Filter by title (case insensitive includes)
       if (
-        filters.name &&
-        !item.name.toLowerCase().includes(filters.name.toLowerCase())
+        filters.title &&
+        !item.title.toLowerCase().includes(filters.title.toLowerCase())
       ) {
         return false;
       }
@@ -107,39 +106,40 @@ class FakeApi {
         return false;
       }
 
-      // Filter by options
-      if (filters.options) {
-        // Filter by size (exact match)
-        if (
-          filters.options.size &&
-          item.options.size !== filters.options.size
-        ) {
-          return false;
+      // Filter by updatedAt date range
+      if (filters.updatedAt) {
+        const itemDate = parseISO(item.updatedAt);
+        let after = true;
+        let before = true;
+        if (filters.updatedAt.from) {
+          after = isAfter(itemDate, parseISO(filters.updatedAt.from));
         }
 
-        // Filter by amount (exact match)
-        if (
-          typeof filters.options.amount !== 'undefined' &&
-          item.options.amount !== filters.options.amount
-        ) {
+        if (filters.updatedAt.to) {
+          before = isBefore(itemDate, parseISO(filters.updatedAt.to));
+        }
+
+        if (!(after && before)) {
           return false;
         }
       }
 
-      // Filter by date range
-      if (filters.createdAt) {
-        const itemDate = parseISO(item.createdAt);
+      // Filter by publishedAt date range
+      if (filters.publishedAt) {
+        const itemDate = parseISO(item.publishedAt);
         let after = true;
         let before = true;
-        if (filters.createdAt.from) {
-          after = isAfter(itemDate, parseISO(filters.createdAt.from));
+        if (filters.publishedAt.from) {
+          after = isAfter(itemDate, parseISO(filters.publishedAt.from));
         }
 
-        if (filters.createdAt.to) {
-          before = isBefore(itemDate, parseISO(filters.createdAt.to));
+        if (filters.publishedAt.to) {
+          before = isBefore(itemDate, parseISO(filters.publishedAt.to));
         }
 
-        return after && before;
+        if (!(after && before)) {
+          return false;
+        }
       }
 
       return true;
@@ -147,30 +147,28 @@ class FakeApi {
   }
 
   // Sorting implementation
-  private applySorting(items: Product[], sort: SortParams): Product[] {
-    console.log('applySorting', items, sort);
+  private applySorting(items: Page[], sort: SortParams): Page[] {
     return [...items].sort((a, b) => {
       let comparison = 0;
 
       switch (sort.field) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
           break;
 
-        case 'createdAt':
-          comparison = compareAsc(parseISO(a.createdAt), parseISO(b.createdAt));
+        case 'updatedAt':
+          comparison = compareAsc(parseISO(a.updatedAt), parseISO(b.updatedAt));
+          break;
+
+        case 'publishedAt':
+          comparison = compareAsc(
+            parseISO(a.publishedAt),
+            parseISO(b.publishedAt),
+          );
           break;
 
         case 'active':
           comparison = Number(a.active) - Number(b.active);
-          break;
-
-        case 'options.size':
-          comparison = a.options.size.localeCompare(b.options.size);
-          break;
-
-        case 'options.amount':
-          comparison = a.options.amount - b.options.amount;
           break;
       }
 
@@ -179,108 +177,78 @@ class FakeApi {
   }
 }
 
-// Example usage
-const sampleData: Product[] = [
+// Sample data
+const samplePagesData: Page[] = [
   {
-    id: 14381328,
-    name: 'id quis voluptate nostrud',
-    options: {
-      size: 'XL',
-      amount: 100,
-    },
-    active: true,
-    createdAt: '1985-08-09T02:10:18.0Z',
-  },
-  {
-    id: 26785188,
-    name: 'esse elit',
-    options: {
-      size: 'S',
-      amount: 10,
-    },
-    active: true,
-    createdAt: '1956-03-20T08:59:40.0Z',
-  },
-  {
-    id: 63878634,
-    name: 'enim',
-    options: {
-      size: 'L',
-      amount: 20,
-    },
+    id: 23634610,
+    title: 'aliquip sit proident veniam tempor',
     active: false,
-    createdAt: '2016-07-27T16:05:57.0Z',
+    updatedAt: '1948-04-09T10:15:44.0Z',
+    publishedAt: '1956-09-25T20:13:19.0Z',
   },
   {
-    id: 79901249,
-    name: 'eu ad',
-    options: {
-      size: 'XXL',
-      amount: 1000,
-    },
-    active: true,
-    createdAt: '1988-08-20T03:53:24.0Z',
-  },
-  {
-    id: 53113051,
-    name: 'proident ipsum',
-    options: {
-      size: 'XL',
-      amount: 4,
-    },
-    active: true,
-    createdAt: '2003-01-19T20:09:29.0Z',
-  },
-  {
-    id: 49132779,
-    name: 'aliqua adipisicing',
-    options: {
-      size: 'S',
-      amount: 22,
-    },
+    id: 67303872,
+    title: 'dolor pariatur et ipsum fugiat',
     active: false,
-    createdAt: '2003-06-14T02:44:44.0Z',
+    updatedAt: '2021-10-23T04:51:35.0Z',
+    publishedAt: '1987-02-20T02:45:15.0Z',
   },
   {
-    id: 12135250,
-    name: 'dolor non in sunt',
-    options: {
-      size: 'M',
-      amount: 11,
-    },
-    active: true,
-    createdAt: '2000-08-04T19:49:04.0Z',
-  },
-  {
-    id: 47196404,
-    name: 'dolor culpa in cupidatat',
-    options: {
-      size: 'S',
-      amount: 1,
-    },
+    id: 49117143,
+    title: 'amet ut cillum tempor',
     active: false,
-    createdAt: '2003-11-15T23:56:45.0Z',
+    updatedAt: '2007-04-09T13:18:03.0Z',
+    publishedAt: '1955-07-01T17:29:49.0Z',
   },
   {
-    id: 5112903,
-    name: 'sunt amet do eu ipsum',
-    options: {
-      size: 'L',
-      amount: 10,
-    },
+    id: 57694553,
+    title: 'sed sint quis',
     active: false,
-    createdAt: '1968-09-24T22:07:21.0Z',
+    updatedAt: '1995-11-26T08:12:19.0Z',
+    publishedAt: '1955-01-16T01:02:51.0Z',
   },
   {
-    id: 32497729,
-    name: 'eiusmod',
-    options: {
-      size: 'XXL',
-      amount: 0,
-    },
+    id: 52130295,
+    title: 'consectetur officia ullamco',
+    active: false,
+    updatedAt: '1988-10-05T04:13:21.0Z',
+    publishedAt: '1982-03-19T19:19:49.0Z',
+  },
+  {
+    id: 87091875,
+    title: 'occaecat et proident',
     active: true,
-    createdAt: '2012-09-24T01:42:32.0Z',
+    updatedAt: '2000-05-25T16:49:30.0Z',
+    publishedAt: '2018-04-18T20:33:59.0Z',
+  },
+  {
+    id: 38008840,
+    title: 'laboris',
+    active: true,
+    updatedAt: '1959-09-18T09:16:21.0Z',
+    publishedAt: '2001-07-12T09:30:50.0Z',
+  },
+  {
+    id: 62296414,
+    title: 'esse minim laboris',
+    active: false,
+    updatedAt: '2021-09-09T22:06:01.0Z',
+    publishedAt: '1989-10-06T07:25:18.0Z',
+  },
+  {
+    id: 76976188,
+    title: 'id cupidatat fugiat tempor',
+    active: false,
+    updatedAt: '1949-05-06T18:01:58.0Z',
+    publishedAt: '1991-09-01T02:29:58.0Z',
+  },
+  {
+    id: 22666349,
+    title: 'minim est',
+    active: true,
+    updatedAt: '1985-04-15T01:04:37.0Z',
+    publishedAt: '1998-12-12T14:02:25.0Z',
   },
 ];
 
-export const productsFakeApi = new FakeApi(sampleData);
+export const pagesFakeApi = new FakePagesApi(samplePagesData);

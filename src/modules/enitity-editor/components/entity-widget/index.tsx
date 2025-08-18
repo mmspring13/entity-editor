@@ -1,7 +1,4 @@
-import {
-  EntityEdit,
-  type EntityEditProps,
-} from '@/modules/enitity-editor/components/edit-entity';
+import { type EntityEditProps } from '@/modules/enitity-editor/components/edit-entity';
 import {
   type Column,
   Table,
@@ -10,9 +7,16 @@ import { TableRow } from './../table-entity/table-entity-row';
 import { TableCell } from './../table-entity/table-entity-cell';
 import { EntityFilters } from './entity-filters';
 import { SortableHeader } from './sortable-header';
-import { type ReactNode, useCallback, useState, useMemo } from 'react';
-import { isAfter, isBefore, isEqual } from 'date-fns';
-import get from 'lodash/get';
+import {
+  type ReactNode,
+  useCallback,
+  useState,
+  useEffect,
+  lazy,
+  Suspense,
+} from 'react';
+
+const EntityEdit = lazy(() => import('./../edit-entity'));
 
 // eslint-disable-next-line
 type RowValues = Record<string, any>;
@@ -21,11 +25,17 @@ export type EntityWidgetSchemaFn = (
   values: RowValues,
 ) => EntityEditProps['schema'];
 
+export type EntityWidgetDataProvider = (
+  // eslint-disable-next-line
+  filters: Record<string, any>,
+  sort: null | { key: string; direction: 'asc' | 'desc' },
+) => Promise<Array<RowValues>>;
+
 export type EntityWidgetProps<T extends Column> = {
   schema: EntityEditProps['schema'] | EntityWidgetSchemaFn;
   tableColumns: Array<T & { sortable?: boolean }>;
   keyProp: string;
-  tableData: Array<RowValues>;
+  dataProvider: EntityWidgetDataProvider;
   onSaveEntity(values: RowValues): void;
   renderCell(key: T['key'], row: RowValues): ReactNode;
 };
@@ -33,11 +43,10 @@ export type EntityWidgetProps<T extends Column> = {
 // eslint-disable-next-line
 export const EntityWidget = <T extends Column>({
   schema,
-  tableData,
+  dataProvider,
   tableColumns,
   keyProp,
   onSaveEntity,
-  // onFilter,
   renderCell,
 }: EntityWidgetProps<T>) => {
   const [selectedEntity, setSelectedEntity] = useState<RowValues | null>(null);
@@ -72,100 +81,15 @@ export const EntityWidget = <T extends Column>({
     });
   }, []);
 
-  const filteredAndSortedData = useMemo(() => {
-    let result = tableData;
+  const [tableData, setTableData] = useState<Array<RowValues>>([]);
 
-    if (Object.keys(filters).length > 0) {
-      result = result.filter((row) => {
-        return Object.entries(filters).every(([key, filterData]) => {
-          const { value, fieldType } = filterData;
-
-          if (value === '' || value === undefined || value === false) {
-            return true;
-          }
-
-          const rowValue = get(row, key);
-
-          switch (fieldType) {
-            case 'date':
-              if (Array.isArray(value)) {
-                const [from, to] = value;
-                const after = from
-                  ? isAfter(rowValue, from) || isEqual(rowValue, from)
-                  : true;
-                const before = to
-                  ? isBefore(rowValue, to) || isEqual(rowValue, to)
-                  : true;
-                return after && before;
-              }
-              break;
-            case 'select':
-              return rowValue === value;
-
-            // case 'multiselect':
-            //   return Array.isArray(value) && value.includes(rowValue);
-
-            case 'text':
-              if (typeof value === 'string') {
-                return rowValue
-                  ?.toString()
-                  .toLowerCase()
-                  .includes(value.toLowerCase());
-              }
-              break;
-
-            default:
-              if (typeof value === 'string') {
-                return rowValue
-                  ?.toString()
-                  .toLowerCase()
-                  .includes(value.toLowerCase());
-              }
-              if (typeof value === 'number') {
-                return rowValue === value;
-              }
-              if (typeof value === 'boolean') {
-                return rowValue === value;
-              }
-              if (Array.isArray(value)) {
-                return value.length === 0 || value.includes(rowValue);
-              }
-          }
-
-          return true;
-        });
-      });
-    }
-
-    if (sortConfig) {
-      result = [...result].sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          const comparison = aValue.localeCompare(bValue);
-          return sortConfig.direction === 'asc' ? comparison : -comparison;
-        }
-
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          const comparison = aValue - bValue;
-          return sortConfig.direction === 'asc' ? comparison : -comparison;
-        }
-
-        if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
-          const comparison = Number(aValue) - Number(bValue);
-          return sortConfig.direction === 'asc' ? comparison : -comparison;
-        }
-
-        const aStr = String(aValue ?? '');
-        const bStr = String(bValue ?? '');
-        const comparison = aStr.localeCompare(bStr);
-        return sortConfig.direction === 'asc' ? comparison : -comparison;
-      });
-    }
-
-    return result;
-  }, [tableData, filters, sortConfig]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const t = await dataProvider(filters, sortConfig);
+      setTableData(t);
+    };
+    fetchData();
+  }, [dataProvider, filters, sortConfig]);
 
   const onEditEntity = useCallback((values: RowValues) => {
     setSelectedEntity(values);
@@ -174,10 +98,17 @@ export const EntityWidget = <T extends Column>({
   const onSubmitEditEntity = useCallback(
     (values: RowValues) => {
       onSaveEntity(values);
+      setTableData((prevData) => {
+        const idx = prevData.findIndex((row) => row.id === values.id);
+        prevData[idx] = values;
+        return prevData;
+      });
       setSelectedEntity(null);
     },
     [onSaveEntity],
   );
+
+  if (!tableData) return null;
 
   return (
     <>
@@ -191,7 +122,7 @@ export const EntityWidget = <T extends Column>({
       )}
 
       <Table
-        data={filteredAndSortedData}
+        data={tableData}
         columns={tableColumns}
         keyProp={keyProp}
         renderHeader={(column) => (
@@ -217,15 +148,17 @@ export const EntityWidget = <T extends Column>({
       </Table>
 
       {selectedEntity && (
-        <EntityEdit
-          schema={
-            typeof schema === 'function' ? schema(selectedEntity) : schema
-          }
-          initialValues={selectedEntity}
-          onSubmit={onSubmitEditEntity}
-          open={true}
-          onOpenChange={() => setSelectedEntity(null)}
-        />
+        <Suspense fallback={null}>
+          <EntityEdit
+            schema={
+              typeof schema === 'function' ? schema(selectedEntity) : schema
+            }
+            initialValues={selectedEntity}
+            onSubmit={onSubmitEditEntity}
+            open={true}
+            onOpenChange={() => setSelectedEntity(null)}
+          />
+        </Suspense>
       )}
     </>
   );

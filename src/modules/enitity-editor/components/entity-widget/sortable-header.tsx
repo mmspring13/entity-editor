@@ -1,12 +1,14 @@
-import { type ReactNode } from 'react';
-
 export type SortableHeaderProps = {
   column: { key: string; label: string; sortable?: boolean };
   sortConfig: { key: string; direction: 'asc' | 'desc' } | null;
   onSort: (key: string) => void;
 };
 
-export const SortableHeader = ({ column, sortConfig, onSort }: SortableHeaderProps) => {
+export const SortableHeader = ({
+  column,
+  sortConfig,
+  onSort,
+}: SortableHeaderProps) => {
   if (!column.sortable) {
     return <span>{column.label}</span>;
   }
@@ -40,5 +42,3 @@ export const SortableHeader = ({ column, sortConfig, onSort }: SortableHeaderPro
     </button>
   );
 };
-
-

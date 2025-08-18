@@ -1,22 +1,22 @@
 import { compareAsc, isAfter, isBefore, parseISO } from 'date-fns';
 
-type Page = {
+type PricePlan = {
   id: number;
-  title: string;
-  updatedAt: string;
+  description: string;
   active: boolean;
-  publishedAt: string;
+  createdAt: string;
+  removedAt: string;
 };
 
 export type FilterParams = {
   id?: number;
-  title?: string;
+  description?: string;
   active?: boolean;
-  updatedAt?: {
+  createdAt?: {
     from?: string;
     to?: string;
   };
-  publishedAt?: {
+  removedAt?: {
     from?: string;
     to?: string;
   };
@@ -27,14 +27,17 @@ export type SortParams = {
   direction: 'asc' | 'desc';
 };
 
-class FakePagesApi {
-  private data: Page[];
+class FakePricePlansApi {
+  private data: PricePlan[];
 
-  constructor(initialData: Page[]) {
+  constructor(initialData: PricePlan[]) {
     this.data = [...initialData];
   }
 
-  async edit(id: number, newValues: Partial<Page>): Promise<Page | null> {
+  async edit(
+    id: number,
+    newValues: Partial<PricePlan>,
+  ): Promise<PricePlan | null> {
     const index = this.data.findIndex((item) => item.id === id);
 
     if (index === -1) {
@@ -46,8 +49,8 @@ class FakePagesApi {
       ...this.data[index],
       ...newValues,
       // Preserve original dates unless explicitly provided
-      updatedAt: newValues.updatedAt ?? this.data[index].updatedAt,
-      publishedAt: newValues.publishedAt ?? this.data[index].publishedAt,
+      createdAt: newValues.createdAt ?? this.data[index].createdAt,
+      removedAt: newValues.removedAt ?? this.data[index].removedAt,
     };
 
     // Directly update the item in the array
@@ -61,7 +64,7 @@ class FakePagesApi {
     filters?: FilterParams;
     sort?: SortParams;
     limit?: number;
-  }): Promise<Page[]> {
+  }): Promise<PricePlan[]> {
     let result = [...this.data];
 
     // Apply filters if provided
@@ -83,17 +86,19 @@ class FakePagesApi {
   }
 
   // Filter implementation
-  private applyFilters(items: Page[], filters: FilterParams): Page[] {
+  private applyFilters(items: PricePlan[], filters: FilterParams): PricePlan[] {
     return items.filter((item) => {
       // Filter by id
       if (filters.id) {
         return item.id === filters.id;
       }
 
-      // Filter by title (case insensitive includes)
+      // Filter by description (case insensitive includes)
       if (
-        filters.title &&
-        !item.title.toLowerCase().includes(filters.title.toLowerCase())
+        filters.description &&
+        !item.description
+          .toLowerCase()
+          .includes(filters.description.toLowerCase())
       ) {
         return false;
       }
@@ -106,17 +111,17 @@ class FakePagesApi {
         return false;
       }
 
-      // Filter by updatedAt date range
-      if (filters.updatedAt) {
-        const itemDate = parseISO(item.updatedAt);
+      // Filter by createdAt date range
+      if (filters.createdAt) {
+        const itemDate = parseISO(item.createdAt);
         let after = true;
         let before = true;
-        if (filters.updatedAt.from) {
-          after = isAfter(itemDate, parseISO(filters.updatedAt.from));
+        if (filters.createdAt.from) {
+          after = isAfter(itemDate, parseISO(filters.createdAt.from));
         }
 
-        if (filters.updatedAt.to) {
-          before = isBefore(itemDate, parseISO(filters.updatedAt.to));
+        if (filters.createdAt.to) {
+          before = isBefore(itemDate, parseISO(filters.createdAt.to));
         }
 
         if (!(after && before)) {
@@ -124,17 +129,17 @@ class FakePagesApi {
         }
       }
 
-      // Filter by publishedAt date range
-      if (filters.publishedAt) {
-        const itemDate = parseISO(item.publishedAt);
+      // Filter by removedAt date range
+      if (filters.removedAt) {
+        const itemDate = parseISO(item.removedAt);
         let after = true;
         let before = true;
-        if (filters.publishedAt.from) {
-          after = isAfter(itemDate, parseISO(filters.publishedAt.from));
+        if (filters.removedAt.from) {
+          after = isAfter(itemDate, parseISO(filters.removedAt.from));
         }
 
-        if (filters.publishedAt.to) {
-          before = isBefore(itemDate, parseISO(filters.publishedAt.to));
+        if (filters.removedAt.to) {
+          before = isBefore(itemDate, parseISO(filters.removedAt.to));
         }
 
         if (!(after && before)) {
@@ -147,24 +152,21 @@ class FakePagesApi {
   }
 
   // Sorting implementation
-  private applySorting(items: Page[], sort: SortParams): Page[] {
+  private applySorting(items: PricePlan[], sort: SortParams): PricePlan[] {
     return [...items].sort((a, b) => {
       let comparison = 0;
 
       switch (sort.field) {
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
+        case 'description':
+          comparison = a.description.localeCompare(b.description);
           break;
 
-        case 'updatedAt':
-          comparison = compareAsc(parseISO(a.updatedAt), parseISO(b.updatedAt));
+        case 'createdAt':
+          comparison = compareAsc(parseISO(a.createdAt), parseISO(b.createdAt));
           break;
 
-        case 'publishedAt':
-          comparison = compareAsc(
-            parseISO(a.publishedAt),
-            parseISO(b.publishedAt),
-          );
+        case 'removedAt':
+          comparison = compareAsc(parseISO(a.removedAt), parseISO(b.removedAt));
           break;
 
         case 'active':
@@ -178,77 +180,77 @@ class FakePagesApi {
 }
 
 // Sample data
-const samplePagesData: Page[] = [
+const samplePricePlansData: PricePlan[] = [
   {
-    id: 23634610,
-    title: 'aliquip sit proident veniam tempor',
+    id: 13334466,
+    description: 'aute fugiat commodo id',
     active: false,
-    updatedAt: '1948-04-09T10:15:44.0Z',
-    publishedAt: '1956-09-25T20:13:19.0Z',
+    createdAt: '1949-06-21T14:03:32.0Z',
+    removedAt: '1960-09-22T13:43:32.0Z',
   },
   {
-    id: 67303872,
-    title: 'dolor pariatur et ipsum fugiat',
+    id: 38738895,
+    description: 'esse dolore cillum anim',
     active: false,
-    updatedAt: '2021-10-23T04:51:35.0Z',
-    publishedAt: '1987-02-20T02:45:15.0Z',
+    createdAt: '2014-09-09T02:06:07.0Z',
+    removedAt: '2006-06-14T18:43:22.0Z',
   },
   {
-    id: 49117143,
-    title: 'amet ut cillum tempor',
+    id: 69423742,
+    description: 'ullamco quis aliquip laborum',
     active: false,
-    updatedAt: '2007-04-09T13:18:03.0Z',
-    publishedAt: '1955-07-01T17:29:49.0Z',
+    createdAt: '1982-10-18T01:51:07.0Z',
+    removedAt: '1978-03-15T11:19:21.0Z',
   },
   {
-    id: 57694553,
-    title: 'sed sint quis',
+    id: 78413703,
+    description: 'nulla elit anim mollit occaecat',
     active: false,
-    updatedAt: '1995-11-26T08:12:19.0Z',
-    publishedAt: '1955-01-16T01:02:51.0Z',
+    createdAt: '1959-07-30T18:57:54.0Z',
+    removedAt: '1980-01-31T01:46:32.0Z',
   },
   {
-    id: 52130295,
-    title: 'consectetur officia ullamco',
+    id: 51092826,
+    description: 'pariatur elit voluptate',
     active: false,
-    updatedAt: '1988-10-05T04:13:21.0Z',
-    publishedAt: '1982-03-19T19:19:49.0Z',
+    createdAt: '1976-09-08T02:38:21.0Z',
+    removedAt: '1995-06-28T23:17:24.0Z',
   },
   {
-    id: 87091875,
-    title: 'occaecat et proident',
+    id: 92933022,
+    description: 'ad cillum proident',
     active: true,
-    updatedAt: '2000-05-25T16:49:30.0Z',
-    publishedAt: '2018-04-18T20:33:59.0Z',
+    createdAt: '1975-02-06T15:44:29.0Z',
+    removedAt: '1970-05-24T23:08:27.0Z',
   },
   {
-    id: 38008840,
-    title: 'laboris',
+    id: 54507439,
+    description: 'nisi eiusmod',
     active: true,
-    updatedAt: '1959-09-18T09:16:21.0Z',
-    publishedAt: '2001-07-12T09:30:50.0Z',
+    createdAt: '1960-07-01T06:17:05.0Z',
+    removedAt: '1993-01-08T23:40:57.0Z',
   },
   {
-    id: 62296414,
-    title: 'esse minim laboris',
-    active: false,
-    updatedAt: '2021-09-09T22:06:01.0Z',
-    publishedAt: '1989-10-06T07:25:18.0Z',
-  },
-  {
-    id: 76976188,
-    title: 'id cupidatat fugiat tempor',
-    active: false,
-    updatedAt: '1949-05-06T18:01:58.0Z',
-    publishedAt: '1991-09-01T02:29:58.0Z',
-  },
-  {
-    id: 22666349,
-    title: 'minim est',
+    id: 39230580,
+    description: 'do in elit sit dolor',
     active: true,
-    updatedAt: '1985-04-15T01:04:37.0Z',
-    publishedAt: '1998-12-12T14:02:25.0Z',
+    createdAt: '1984-10-02T14:32:01.0Z',
+    removedAt: '1985-09-30T09:48:12.0Z',
+  },
+  {
+    id: 99000859,
+    description: 'reprehenderit exercitation Duis non',
+    active: false,
+    createdAt: '1977-07-05T09:58:14.0Z',
+    removedAt: '1991-07-12T09:30:12.0Z',
+  },
+  {
+    id: 74826040,
+    description: 'dolor ullamco fugiat incididunt in',
+    active: false,
+    createdAt: '2004-12-10T22:13:28.0Z',
+    removedAt: '2021-09-09T11:21:13.0Z',
   },
 ];
 
-export const pagesFakeApi = new FakePagesApi(samplePagesData);
+export const pricePlansFakeApi = new FakePricePlansApi(samplePricePlansData);
