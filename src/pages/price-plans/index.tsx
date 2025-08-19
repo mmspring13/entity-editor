@@ -24,7 +24,7 @@ const PricePlansPage = () => {
   const pricePlanSchema = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
-      id: text({ label: 'ID', readonly: disabled, filterable: true }),
+      id: text({ label: 'ID', readonly: true, filterable: true }),
       description: text({
         label: 'Description',
         type: 'textarea',

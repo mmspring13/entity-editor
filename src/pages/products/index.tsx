@@ -32,7 +32,7 @@ const ProductsPage = () => {
   const productsScheme = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
-      id: text({ label: 'ID', readonly: disabled, filterable: true }),
+      id: text({ label: 'ID', readonly: true, filterable: true }),
       name: text({
         label: 'name',
         readonly: disabled,

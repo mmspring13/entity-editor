@@ -24,7 +24,7 @@ const PagesPage = () => {
   const pagesSchema = useCallback<EntityWidgetSchemaFn>((row) => {
     const disabled = !row.active;
     return entity({
-      id: text({ label: 'ID', readonly: disabled, filterable: true }),
+      id: text({ label: 'ID', readonly: true, filterable: true }),
       title: text({
         label: 'title',
         readonly: disabled,
